@@ -41,7 +41,11 @@ let backend = null;
 
 function supabaseBackend(){
   if (!window.supabase) throw new Error('Nie udało się wczytać biblioteki Supabase. Sprawdź połączenie z internetem.');
-  const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  // Sam adres projektu, bez dopisków typu /rest/v1/ czy ukośnika na końcu
+  let url = String(CFG.SUPABASE_URL).trim();
+  try { url = new URL(url).origin; } catch(e) { throw new Error('Błędny SUPABASE_URL w pliku config.js – wpisz adres w formie https://twojprojekt.supabase.co'); }
+  if (!/\.supabase\.(co|in)$/.test(new URL(url).hostname)) throw new Error('SUPABASE_URL w config.js to nie adres projektu. Skopiuj „Project URL” z Supabase → Project Settings → API (np. https://abcd.supabase.co).');
+  const sb = window.supabase.createClient(url, String(CFG.SUPABASE_ANON_KEY).trim());
   const chk = ({data, error}) => { if (error) throw new Error(plError(error.message)); return data; };
   const files = sb.storage.from('pliki');
   return {
@@ -232,6 +236,14 @@ const nameOf = id => prof(id)?.imie || 'Ktoś';
 const badgesOf = hid => S.data.sprawnosci.filter(s => s.harcerz_id === hid).sort((a,b) => String(b.data).localeCompare(String(a.data)));
 const probaOf = hid => S.data.proby.filter(p => p.harcerz_id === hid).sort((a,b) => (a.status === 'otwarta' ? -1 : 1) - (b.status === 'otwarta' ? -1 : 1) || String(b.data_otwarcia).localeCompare(String(a.data_otwarcia)));
 const zastepOrder = z => { const i = ZASTEPY.indexOf(z); return z === 'Kadra' ? -1 : i < 0 ? 99 : i; };
+// Kolejność w zastępie: drużynowy, przyboczny, zastępowy, podzastępowy, proporcowy, apteczkowy, potem reszta alfabetycznie
+const RANGI = ['druzynowy','przyboczny','zastepowy','podzastepowy','proporcowy','apteczkowy'];
+const rangaOf = h => {
+  const p = S.data.profiles?.find(p => norm(p.imie) === norm(`${h.imie} ${h.nazwisko}`));
+  const r = p ? p.rola : S.data.funkcje?.find(f => f.harcerz_id === h.id)?.funkcja;
+  const i = RANGI.indexOf(r); return i < 0 ? 99 : i;
+};
+const cmpHarcerz = (a,b) => zastepOrder(a.zastep) - zastepOrder(b.zastep) || rangaOf(a) - rangaOf(b) || a.nazwisko.localeCompare(b.nazwisko,'pl') || a.imie.localeCompare(b.imie,'pl');
 
 async function loadAll(){
   const res = await Promise.all(TABLES.map(t => backend.list(t)));
@@ -640,7 +652,7 @@ function matchKatalog(nazwa){
 function harcerzeFiltered(){
   const q = norm(S.q);
   return S.data.harcerze.filter(h => (!q || norm(fullName(h)).includes(q)) && (!S.zastep || h.zastep === S.zastep))
-    .sort((a,b) => zastepOrder(a.zastep) - zastepOrder(b.zastep) || a.nazwisko.localeCompare(b.nazwisko,'pl'));
+    .sort(cmpHarcerz);
 }
 function filtersHtml(){
   const zs = ['Kadra', ...ZASTEPY, ...new Set(S.data.harcerze.map(h => h.zastep).filter(z => z && z !== 'Kadra' && !ZASTEPY.includes(z)))];
@@ -694,7 +706,7 @@ function ksKatalog(){
 function katOpen(id){
   const k = byId('katalog', id); if (!k) return;
   const who = S.data.sprawnosci.filter(s => norm(s.nazwa) === norm(k.nazwa)).map(s => ({ s, h: byId('harcerze', s.harcerz_id) })).filter(x => x.h)
-    .sort((a,b) => zastepOrder(a.h.zastep) - zastepOrder(b.h.zastep) || a.h.nazwisko.localeCompare(b.h.nazwisko,'pl'));
+    .sort((a,b) => cmpHarcerz(a.h, b.h));
   openSheet(k.nazwa, `<div class="meta">${esc(k.kategoria)} · ${esc(k.galaz)}${k.poziom ? ` · <span class="stars">${stars(k.poziom)}</span>` : ''}</div>
     <div class="section-title">Zdobyli (${who.filter(x => x.s.status !== 'do_zamkniecia').length})</div>
     ${who.length ? who.map(({s,h}) => `<div class="row"><div><b>${esc(fullName(h))}</b><div class="meta">${esc(zastepLabel(h.zastep))}${s.data ? ' · ' + fmtDate(s.data) : ''}</div></div>
@@ -782,21 +794,25 @@ const mozeUstalacFunkcje = h => isKadra() || (S.me.rola === 'zastepowy' && S.me.
 function vLista(){
   const k = isKadra();
   const list = S.data.harcerze.filter(h => k ? (!S.listaZastep || h.zastep === S.listaZastep) : (S.me.zastep && h.zastep === S.me.zastep))
-    .sort((a,b) => zastepOrder(a.zastep) - zastepOrder(b.zastep) || a.nazwisko.localeCompare(b.nazwisko,'pl'));
+    .sort(cmpHarcerz);
   const zs = ['Kadra', ...ZASTEPY, ...new Set(S.data.harcerze.map(h => h.zastep).filter(z => z && z !== 'Kadra' && !ZASTEPY.includes(z)))];
   let body = '', g = null;
   for (const h of list) {
     if (h.zastep !== g) { if (g !== null) body += '</div>'; g = h.zastep; body += `<div class="group-title">${esc(zastepLabel(g))}</div><div class="card roster">`; }
     const f = funkcjaOf(h), edit = k || (mozeUstalacFunkcje(h) && !f?.fixed);
+    const zg = !!h.zgoda_zhr;
     body += `<div class="roster-row${edit ? ' tap' : ''}" ${edit ? `data-act="lista-open" data-id="${h.id}" tabindex="0" role="button"` : ''}>
       <span class="r-name">${esc(fullName(h))}</span><span class="r-rank">${esc(h.stopien || '—')}</span>
-      <span class="r-fun">${f ? `<span class="pill ${f.fixed ? 'gold' : ''}">${esc(f.label)}</span>` : (mozeUstalacFunkcje(h) ? '<span class="meta">+ funkcja</span>' : '')}</span></div>`;
+      <span class="r-fun">${f ? `<span class="pill ${f.fixed ? 'gold' : ''}">${esc(f.label)}</span>` : (mozeUstalacFunkcje(h) ? '<span class="meta">+ funkcja</span>' : '')}</span>
+      <span class="r-zg">${k ? `<button class="zg ${zg ? 'tak' : 'nie'}" data-act="zgoda" data-id="${h.id}" aria-pressed="${zg}" aria-label="Zgoda ZHR: ${zg ? 'tak' : 'nie'} – kliknij, by zmienić"><i class="zg-l">Zgoda ZHR: </i>${zg ? 'Tak' : 'Nie'}</button>`
+        : `<span class="zg ${zg ? 'tak' : 'nie'}"><i class="zg-l">Zgoda ZHR: </i>${zg ? 'Tak' : 'Nie'}</span>`}</span></div>`;
   }
   if (g !== null) body += '</div>';
   return `<div class="view-head"><div><h1>Lista harcerzy</h1><p>${k ? 'Cała drużyna' : (S.me.zastep ? 'Zastęp ' + esc(S.me.zastep) : 'Brak przypisanego zastępu')}</p></div>
     ${k ? `<button class="btn" data-act="harcerz-new">${ICON.plus}Dodaj harcerza</button>` : ''}</div>
     ${k ? `<div class="filters"><select id="listaZastep" aria-label="Zastęp"><option value="">Wszystkie zastępy</option>${zs.map(z => `<option ${z === S.listaZastep ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select></div>` : ''}
-    <div class="roster-head"><span>Imię i nazwisko</span><span>Stopień</span><span>Funkcja</span></div>
+    ${list.length ? `<p class="meta">Zgody ZHR: <b>${list.filter(h => h.zgoda_zhr).length} z ${list.length}</b>${k ? ' – stuknij Tak/Nie, żeby zmienić' : ''}</p>` : ''}
+    <div class="roster-head"><span>Imię i nazwisko</span><span>Stopień</span><span>Funkcja</span><span>Zgoda ZHR</span></div>
     ${body || `<div class="empty"><strong>Brak harcerzy</strong>${k ? 'Dodaj pierwszego harcerza.' : ''}</div>`}
     ${!k && list.length ? '<p class="meta">Stuknij harcerza, żeby ustalić jego funkcję w zastępie.</p>' : ''}`;
 }
@@ -957,7 +973,7 @@ const skVal = w => !w ? '' : w.zwolniony ? '-' : w.kwota == null ? '' : String(N
 function vSkladki(){
   if (!isDruzynowy()) return `<div class="empty"><strong>Brak dostępu</strong>Składki prowadzi drużynowy.</div>`;
   const fee = skKwota(), rok = skRok();
-  const list = [...S.data.harcerze].sort((a,b) => zastepOrder(a.zastep) - zastepOrder(b.zastep) || a.nazwisko.localeCompare(b.nazwisko,'pl'));
+  const list = [...S.data.harcerze].sort(cmpHarcerz);
   let html = '', g = null, sumG = 0;
   const closeGroup = () => `<div class="sk-foot"><span>Do zapłaty w zastępie</span><b data-gsum="${esc(g)}">${zl(sumG)}</b></div></div>`;
   for (const h of list) {
@@ -1104,6 +1120,12 @@ const actions = {
   'ks-mode': (id, el) => { S.ksMode = el.dataset.v; render(); },
   'kat-open': id => katOpen(id),
   'lista-open': id => listaOpen(Number(id)),
+  'zgoda': async (id, el) => {
+    const h = byId('harcerze', id); if (!h || !isKadra()) return;
+    const nowa = !h.zgoda_zhr; el.disabled = true;
+    try { await backend.update('harcerze', h.id, { zgoda_zhr: nowa }); h.zgoda_zhr = nowa; render(); toast(`${fullName(h)}: zgoda ZHR – ${nowa ? 'tak' : 'nie'}`); }
+    catch(e) { el.disabled = false; toast(e.message); }
+  },
   'kat-new': () => katForm(),
   'kat-edit': id => katForm(byId('katalog', id)),
   'harcerz-new': () => harcerzForm(),

@@ -1,6 +1,6 @@
 // Service worker: szybkie otwieranie i działanie bez zasięgu (ostatnio pobrane pliki).
 // Po każdej zmianie plików aplikacji podnieś numer wersji: rota-v1 → rota-v2 …
-const CACHE = 'rota-v3';
+const CACHE = 'rota-v6';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest', 'logo.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

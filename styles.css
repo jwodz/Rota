@@ -220,7 +220,7 @@ button.bdg:hover{filter:brightness(1.07)}
 
 /* Lista harcerzy */
 .roster{padding:4px 16px}
-.roster-head,.roster-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+.roster-head,.roster-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 84px;gap:10px;align-items:center}
 .roster-head{font-size:12px;font-weight:700;color:var(--muted);padding:0 17px;margin:6px 0 -4px}
 .roster-row{padding:12px 0;border-bottom:1px solid var(--line);min-height:52px}
 .roster-row:last-child{border-bottom:0}
@@ -229,7 +229,7 @@ button.bdg:hover{filter:brightness(1.07)}
 .r-rank{color:var(--gold-ink);font-weight:600}
 .r-fun{text-align:right}
 .tabs a{font-size:11.5px;padding-inline:0}
-@media(max-width:420px){.roster{padding:2px 12px}.roster-head{padding:0 13px}.roster-head,.roster-row{grid-template-columns:minmax(0,1.5fr) minmax(0,.9fr) minmax(0,1fr);gap:6px;font-size:15px}}
+
 .r-fun .pill{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 @media(max-width:420px){.r-fun .pill{font-size:12px;padding:2px 8px}}
 .change.danger{border-left:3px solid var(--red);padding-left:10px;margin-left:-13px}
@@ -307,3 +307,19 @@ body.auth-mode main{max-width:none;padding:0}
   .sk-head span:first-child{display:none}
   .sk-in{font-size:15px}
 }
+
+.r-zg{text-align:center}
+.roster-head span:last-child{text-align:center}
+.zg{display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:34px;padding:0 10px;border-radius:99px;font:700 13px "Source Sans 3",sans-serif;border:1.5px solid transparent}
+button.zg{cursor:pointer}
+.zg.tak{background:light-dark(#e0efe3,#15301d);color:light-dark(#1e5a31,#8fd7a4);border-color:light-dark(#b6d9bf,#24502f)}
+.zg.nie{background:light-dark(#fde2df,#4a1612);color:light-dark(#a3271d,#ff8b7d);border-color:light-dark(#f1a59d,#8a2a21)}
+button.zg:hover{filter:brightness(1.05)}
+@media(max-width:560px){
+  .roster{padding:2px 12px}
+  .roster-head{display:none}
+  .roster-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name zg" "rank fun";row-gap:2px;column-gap:8px}
+  .r-name{grid-area:name}.r-zg{grid-area:zg}.r-rank{grid-area:rank;font-size:14px}.r-fun{grid-area:fun}
+}
+.zg-l{display:none;font-style:normal;font-weight:600;margin-right:3px}
+@media(max-width:560px){.zg-l{display:inline}.r-zg,.r-fun{justify-self:end;text-align:right}}
