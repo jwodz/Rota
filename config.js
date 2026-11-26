@@ -7,7 +7,7 @@ window.HARC_CONFIG = {
   NAZWA_DRUZYNY: "III Siedlecka Drużyna Harcerzy „Rota”",
 
   // Supabase → Project Settings → API
-  SUPABASE_URL: "https://tkyjwlzyyvbrqkgixheh.supabase.co/rest/v1/",        // np. "https://abcdefgh.supabase.co"
+  SUPABASE_URL: "https://tkyjwlzyyvbrqkgixheh.supabase.co",        // np. "https://abcdefgh.supabase.co"
   SUPABASE_ANON_KEY: "sb_publishable_M-7vqeFtsE4Ne8FRIEBhIg_hq5J1756",   // klucz "anon public" / "publishable" (bezpieczny do publikacji)
 
   // Login "jan.wodzynski" zamienia się w "jan.wodzynski@rota.local".
