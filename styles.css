@@ -323,3 +323,17 @@ button.zg:hover{filter:brightness(1.05)}
 }
 .zg-l{display:none;font-style:normal;font-weight:600;margin-right:3px}
 @media(max-width:560px){.zg-l{display:inline}.r-zg,.r-fun{justify-self:end;text-align:right}}
+
+/* Dodawanie wielu sprawności */
+.ms-list{border:1px solid var(--line);border-radius:14px;padding:4px 12px;max-height:46vh;overflow:auto;background:var(--soft)}
+.ms-kat{border-left:4px solid var(--c,#777);padding-left:10px;margin:10px 0}
+.ms-kat .kat-title{margin-bottom:2px}
+.ms-item{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;min-height:44px}
+.ms-item:last-child{border-bottom:0}
+.ms-item input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--red)}
+.ms-item small{display:block;color:var(--muted);font-size:12px}
+.ms-item.owned{opacity:.5;cursor:default}
+.ms-item:has(input:checked){background:light-dark(#fff6dc,#2a2414);margin:0 -12px;padding-inline:12px}
+.ms-custom{margin-top:10px}
+.ms-bar{position:sticky;bottom:calc(-24px - var(--safe-b));background:var(--card);padding:10px 0 calc(4px + var(--safe-b));margin-top:4px}
+.ms-item[hidden],.ms-kat[hidden]{display:none}

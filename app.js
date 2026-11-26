@@ -58,6 +58,7 @@ function supabaseBackend(){
     async setPassword(password){ chk(await sb.auth.updateUser({ password })); },
     async list(t){ return chk(await sb.from(t).select('*').order('created_at', {ascending:false})); },
     async insert(t, row){ return chk(await sb.from(t).insert(row).select().single()); },
+    async insertMany(t, rows){ return chk(await sb.from(t).insert(rows).select()); },
     async update(t, id, patch){ return chk(await sb.from(t).update(patch).eq('id', id).select().single()); },
     async remove(t, id){ chk(await sb.from(t).delete().eq('id', id)); },
     async setSkladka(harcerz_id, rok, kwartal, wpis){
@@ -121,6 +122,7 @@ function demoBackend(){
       if (t === 'konspekty') { const me = db.profiles.find(p => p.id === db.me); r.zastep = me.zastep; r.status = 'oczekuje'; }
       db[t].push(r); save(); return r;
     },
+    async insertMany(t, rows){ const out = []; for (const r of rows) out.push(await this.insert(t, r)); return out; },
     async update(t, id, patch){
       db[t] = db[t] || [];
       const r = db[t].find(x => x.id === id);
@@ -747,12 +749,63 @@ function badgesOpen(hid){
   const pend = b.filter(s => s.status === 'do_zamkniecia').length;
   const [c1,c2,c3] = countStars(b);
   openSheet(fullName(h), `<div class="meta">${esc(zastepLabel(h.zastep))} · ${esc(h.stopien || 'bez stopnia')} · ★ ${c1} · ★★ ${c2} · ★★★ ${c3}</div>
-    ${k ? `<button class="btn wide" style="margin:14px 0 4px" data-act="badge-add" data-id="${h.id}">${ICON.plus}Dodaj sprawność</button>` : ''}
+    ${k ? `<button class="btn wide" style="margin:14px 0 4px" data-act="badge-add" data-id="${h.id}">${ICON.plus}Dodaj sprawności</button>` : ''}
     ${pend ? `<p class="meta">Sprawności w przerywanej ramce czekają na zamknięcie rozkazem (${pend}).</p>` : ''}
     ${groups.size ? [...groups].map(([kat, list]) => `<section class="kat-sec" style="--c:${KATEGORIE[kat] || '#777'}">
       <h3 class="kat-title">${esc(kat)} <span class="meta" style="font-family:inherit">(${list.length})</span></h3><div class="chips">${list.map(chip).join('')}</div></section>`).join('')
       : '<p class="meta" style="margin-top:14px">Ten harcerz nie ma jeszcze sprawności.</p>'}`);
 }
+/* Dodawanie wielu sprawności naraz: zaznaczasz w katalogu i zapisujesz jednym przyciskiem */
+function badgeMultiForm(hid){
+  const h = byId('harcerze', hid); if (!h) return;
+  const ma = new Set(badgesOf(h.id).map(s => norm(s.nazwa)));
+  let lista = '';
+  for (const [kat, gal] of katalogTree()) {
+    const items = [...gal.values()].flat();
+    lista += `<section class="ms-kat" style="--c:${KATEGORIE[kat] || '#777'}"><h3 class="kat-title">${esc(kat)}</h3>${items.map(i => {
+      const owned = ma.has(norm(i.nazwa));
+      return `<label class="ms-item${owned ? ' owned' : ''}" data-q="${esc(norm(i.nazwa + ' ' + i.galaz))}">
+        <input type="checkbox" value="${i.id}" ${owned ? 'disabled' : ''}>
+        <span><b>${esc(i.nazwa)}</b> ${i.poziom ? `<span class="stars">${stars(i.poziom)}</span>` : ''}<small>${i.galaz !== kat ? esc(i.galaz) : ''}${owned ? (i.galaz !== kat ? ' · ' : '') + 'już ma' : ''}</small></span></label>`;
+    }).join('')}</section>`;
+  }
+  openSheet(`Dodaj sprawności: ${fullName(h)}`, `<form id="msForm" novalidate>
+    <input type="search" id="msSearch" placeholder="Szukaj sprawności lub ścieżki…" aria-label="Szukaj sprawności" style="margin-bottom:10px">
+    <div class="ms-list">${lista || '<p class="meta">Katalog jest pusty.</p>'}</div>
+    <details class="ms-custom"><summary class="linkbtn" style="cursor:pointer">+ Sprawność spoza katalogu</summary>
+      <div class="two" style="margin-top:8px">${fieldHtml({ name:'c_nazwa', label:'Nazwa', placeholder:'np. Jerycho 2027' })}${fieldHtml({ name:'c_poziom', label:'Gwiazdki', type:'select', value:1, options:[{value:1,label:'★'},{value:2,label:'★★'},{value:3,label:'★★★'},{value:'',label:'bez gwiazdek'}] })}</div></details>
+    <div class="two" style="margin-top:12px">
+      ${fieldHtml({ name:'status', label:'Status', type:'select', value:'przyznana', options:[{value:'przyznana',label:'Przyznana'},{value:'do_zamkniecia',label:'Do zamknięcia rozkazem'}] })}
+      ${fieldHtml({ name:'data', label:'Data (opcjonalnie)', type:'date', value: today() })}</div>
+    <p class="err"></p>
+    <div class="ms-bar"><button type="submit" class="btn wide" id="msSubmit" disabled>Zaznacz sprawności</button></div></form>`);
+  const form = $('#msForm'), btn = $('#msSubmit');
+  const ile = () => form.querySelectorAll('.ms-list input:checked').length + (form.elements.c_nazwa.value.trim() ? 1 : 0);
+  const odswiez = () => { const n = ile(); btn.disabled = !n; btn.textContent = n ? `Dodaj zaznaczone (${n})` : 'Zaznacz sprawności'; };
+  form.addEventListener('change', odswiez);
+  form.elements.c_nazwa.addEventListener('input', odswiez);
+  $('#msSearch').addEventListener('input', e => {
+    const q = norm(e.target.value);
+    form.querySelectorAll('.ms-item').forEach(el => el.hidden = !!q && !el.dataset.q.includes(q));
+    form.querySelectorAll('.ms-kat').forEach(sec => sec.hidden = ![...sec.querySelectorAll('.ms-item')].some(el => !el.hidden));
+  });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = form.elements.status.value, data = form.elements.data.value || null;
+    const rows = [...form.querySelectorAll('.ms-list input:checked')].map(c => byId('katalog', c.value)).filter(Boolean)
+      .map(k => ({ harcerz_id: h.id, nazwa: k.nazwa, poziom: k.poziom, status, data }));
+    const cn = form.elements.c_nazwa.value.trim();
+    if (cn) {
+      if (ma.has(norm(cn)) || rows.some(r => norm(r.nazwa) === norm(cn))) { form.querySelector('.err').textContent = 'Ten harcerz ma już sprawność o tej nazwie.'; return; }
+      rows.push({ harcerz_id: h.id, nazwa: cn, poziom: form.elements.c_poziom.value ? Number(form.elements.c_poziom.value) : null, status, data });
+    }
+    if (!rows.length) return;
+    btn.disabled = true; btn.textContent = 'Zapisuję…';
+    const ok = await mutate(() => backend.insertMany('sprawnosci', rows), `Dodano sprawności: ${rows.length}`, () => badgesOpen(h.id));
+    if (!ok) odswiez();
+  });
+}
+
 function badgeForm(hid, s, preset){
   const items = katalogSorted();
   const cur = s ? katOf(s.nazwa) : preset;
@@ -1114,7 +1167,7 @@ const actions = {
   'plan-open': id => planOpen(byId('konspekty', id)),
   'plan-tab': (id, el) => { S.planTab = el.dataset.v; render(); },
   'badges': id => badgesOpen(Number(id)),
-  'badge-add': id => badgeForm(Number(id)),
+  'badge-add': id => badgeMultiForm(Number(id)),
   'badge-edit': id => { const s = byId('sprawnosci', id); badgeForm(s.harcerz_id, s); },
   'badge-quick': (id, el) => badgeForm(Number(id), null, byId('katalog', el.dataset.k)),
   'ks-mode': (id, el) => { S.ksMode = el.dataset.v; render(); },
