@@ -1,0 +1,309 @@
+/*
+VOICE: uroczysty, harcerski, ale praktyczny – aplikacja drużyny „Rota”.
+IDEA: naszywka drużyny – czarne pole, złoty orzeł, czerwono-złote obręcze.
+PICTURE: logo w nagłówku, pasek obręczy pod nim; listy jak karty z kroniki drużyny.
+COLOUR and TYPE: czerń #111, złoto #c9a23a, czerwień #a3271d; Cinzel (jak napis ROTA) + Source Sans 3.
+LAYOUT: jedna kolumna do 780px, dolna nawigacja, formularze w arkuszu od dołu.
+*/
+:root{
+  color-scheme:light dark;
+  --black:#111111;--gold:#c9a23a;--gold-2:#e0bd5a;--red:#a3271d;--red-2:#c0392b;
+  --bg:light-dark(#f2efe8,#0b0b0b);
+  --card:light-dark(#ffffff,#171716);
+  --ink:light-dark(#161512,#ede8dd);
+  --muted:light-dark(#605a4e,#a8a090);
+  --line:light-dark(#ddd6c6,#2d2b26);
+  --soft:light-dark(#f7f4ec,#201f1b);
+  --gold-ink:light-dark(#7d5e0c,#e0bd5a);
+  --red-ink:light-dark(#a3271d,#ff7b6b);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:clip;padding-bottom:calc(76px + var(--safe-b))}
+h1,h2,h3{font-family:Cinzel,Georgia,serif;font-weight:700;line-height:1.1;margin:0;text-wrap:balance;letter-spacing:.3px}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--red-ink)}
+
+/* ---------- Nagłówek: czarne pole naszywki + obręcze ---------- */
+.top{background:var(--black);color:var(--gold-2);position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0px);box-shadow:0 3px 0 var(--gold),0 6px 0 var(--red),0 8px 0 var(--gold)}
+.top-in{max-width:780px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:8px 14px}
+.logo{width:46px;height:46px;flex:none;object-fit:contain}
+.brand{flex:1;display:flex;flex-direction:column;line-height:1.1}
+.brand .app{font:700 24px Cinzel,Georgia,serif;letter-spacing:3px;color:var(--gold-2)}
+.brand .team{font-size:13px;color:#cbbd94;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:inherit;flex:none}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn:hover{background:rgba(127,127,127,.18)}
+.demo-bar{background:#2a2414;color:var(--gold-2);font-size:13px;text-align:center;padding:4px 12px;margin-bottom:8px}
+
+/* ---------- Treść ---------- */
+main{max-width:780px;margin:0 auto;padding:24px 16px;outline:none}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.view-head h1{font-size:32px}
+.view-head p{margin:4px 0 0;color:var(--muted);font-size:15px}
+.head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.section-title{font:700 18px Cinzel,Georgia,serif;margin:26px 0 10px;color:var(--gold-ink);display:flex;align-items:center;gap:10px}
+.section-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.btn{min-height:44px;padding:0 18px;border-radius:12px;border:0;background:var(--red);color:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;text-decoration:none}
+.btn svg{width:20px;height:20px;flex:none}
+.btn:hover{filter:brightness(1.08)}
+.btn.black{background:var(--black);color:var(--gold-2);border:1px solid #3a3426}
+.btn.ghost{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--red-ink);border:1px solid currentColor}
+.btn.small{min-height:38px;padding:0 12px;font-size:14px;border-radius:10px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.tap{cursor:pointer;transition:transform .12s}
+.tap:active{transform:scale(.99)}
+.meta{color:var(--muted);font-size:14px}
+.nowrap{white-space:nowrap}
+.empty{text-align:center;padding:34px 16px;color:var(--muted);border:2px dashed var(--line);border-radius:16px}
+.empty strong{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;background:var(--soft);border:1px solid var(--line);white-space:nowrap}
+.pill.wait{background:light-dark(#fbefd0,#3a2f12);color:light-dark(#6d4f00,#f1cf6a);border-color:light-dark(#ebcf83,#5a4a1d)}
+.pill.ok{background:light-dark(#e0efe3,#15301d);color:light-dark(#1e5a31,#8fd7a4);border-color:light-dark(#b6d9bf,#24502f)}
+.pill.red{background:var(--red);color:#fff;border-color:transparent}
+.pill.gold{background:var(--black);color:var(--gold-2);border-color:#3a3426}
+.prose{white-space:pre-wrap;overflow-wrap:anywhere}
+.stars{color:var(--gold-ink);letter-spacing:1px;white-space:nowrap}
+.seg{display:flex;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;min-height:40px;border:0;background:none;border-radius:9px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--black);color:var(--gold-2)}
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filters input{flex:1 1 200px}
+.filters select{flex:0 1 190px}
+
+/* Rozkazy */
+.order-num{font:700 14px Cinzel,Georgia,serif;color:var(--red-ink);letter-spacing:.5px}
+.order h3{font-size:22px;margin:3px 0 4px}
+.order .prose{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.order.collapsed .prose{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.linkbtn{background:none;border:0;color:var(--red-ink);font-weight:700;padding:0;cursor:pointer;min-height:40px}
+.card-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+/* Karty do pobrania */
+.dl-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:8px}
+.dl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;background:var(--black);color:var(--gold-2);border:1px solid #3a3426;border-radius:14px;padding:14px 8px;min-height:104px;text-decoration:none;font-weight:600;font-size:14px;line-height:1.25}
+.dl svg{width:28px;height:28px}
+.dl.missing{background:var(--soft);color:var(--muted);border-style:dashed;border-color:var(--line);cursor:default}
+.dl small{font-weight:400;font-size:12px;opacity:.85}
+@media(max-width:560px){.dl-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Harcerze */
+.group-title{font:700 16px Cinzel,Georgia,serif;margin:20px 0 8px;color:var(--muted);letter-spacing:.5px}
+.person{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--black);color:var(--gold-2);display:grid;place-items:center;font:700 16px Cinzel,Georgia,serif;border:2px solid var(--gold)}
+.person h3{font:700 18px "Source Sans 3",sans-serif;letter-spacing:0}
+.count{font:700 24px Cinzel,Georgia,serif;text-align:right;white-space:nowrap;color:var(--gold-ink)}
+.count small{display:block;font:600 12px "Source Sans 3",sans-serif;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:13px;padding:2px 8px;border-radius:8px;background:var(--soft);border:1px solid var(--line);white-space:nowrap}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.rank-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:12px;align-items:center}
+.rank{font-weight:700}
+@media(max-width:560px){.rank-row{grid-template-columns:minmax(0,1fr) auto}.rank-row .proba-col{grid-column:1/-1;order:3}}
+
+/* Konspekty */
+.plan h3{font:700 20px "Source Sans 3",sans-serif;letter-spacing:0;margin-top:2px}
+.when{font-weight:700;color:var(--gold-ink)}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0 14px}
+.detail-grid div{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.detail-grid b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+
+/* Księga tradycji */
+.book{background:light-dark(#fbf8f0,#141311);border:1px solid var(--line);border-radius:6px 16px 16px 6px;box-shadow:inset 10px 0 0 light-dark(#1a1a1a,#000),inset 13px 0 0 var(--gold);padding:22px 20px 22px 34px;margin-bottom:16px}
+.book .okres{font:700 13px Cinzel,Georgia,serif;color:var(--red-ink);letter-spacing:1.5px}
+.book h3{font-size:24px;margin:4px 0 10px}
+.book .prose{font-size:17px;line-height:1.65}
+.book img{display:block;width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin:6px 0 14px;background:var(--soft)}
+
+/* Więcej */
+.menu a{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;padding:14px 16px;min-height:64px}
+.menu a svg{width:28px;height:28px;color:var(--gold-ink);flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.menu b{display:block;font-size:17px}
+.menu span{color:var(--muted);font-size:14px}
+
+/* Formularze */
+.field{display:block;margin-bottom:14px}
+.field>span{display:block;font-size:14px;font-weight:700;margin-bottom:5px}
+input,select,textarea{width:100%;min-height:46px;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+textarea{min-height:120px;resize:vertical;line-height:1.45}
+textarea.tall{min-height:320px}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:2px solid color-mix(in srgb,var(--gold) 35%,transparent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px}
+@media(max-width:420px){.three{grid-template-columns:1fr 1fr}.three .field:first-child{grid-column:1/-1}}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.form-actions .btn{flex:1 1 140px}
+.err{color:var(--red-ink);font-size:14px;min-height:20px;margin:4px 0}
+.change{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.change input[type=checkbox]{width:22px;height:22px;min-height:0;margin-top:2px;accent-color:var(--red)}
+.change select{margin-top:6px;min-height:42px}
+.change .what{font-weight:700}
+.photo-prev{width:100%;max-height:260px;object-fit:contain;background:var(--soft);border-radius:12px;border:1px solid var(--line)}
+.spinner{width:46px;height:46px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--red);animation:spin 1s linear infinite;margin:18px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Logowanie */
+.auth{max-width:420px;margin:12px auto}
+.auth .hero{text-align:center;margin-bottom:20px}
+.auth .hero img{width:170px;height:170px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}
+.auth .hero h1{font-size:30px;margin-top:10px}
+.auth .hero p{color:var(--muted);margin:6px 0 0}
+
+/* Dolna nawigacja */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--black);border-top:2px solid var(--gold);display:flex;justify-content:center;padding-bottom:var(--safe-b)}
+.tabs[hidden]{display:none}
+.tabs a{flex:1;max-width:150px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;text-decoration:none;color:#a59c86;font-size:12px;font-weight:600;min-height:60px}
+.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.tabs a[aria-current=page]{color:var(--gold-2)}
+.tabs a[aria-current=page] svg{stroke-width:2.3}
+
+/* Arkusz */
+.sheet-wrap{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap[hidden]{display:none}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.sheet{position:relative;background:var(--card);width:100%;max-width:680px;max-height:94vh;max-height:94dvh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:up .22s ease-out;border-top:3px solid var(--gold)}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:14px 10px 8px 20px;border-bottom:1px solid var(--line)}
+.sheet-head h2{flex:1;font-size:22px}
+.sheet-body{overflow:auto;padding:16px 20px calc(24px + var(--safe-b))}
+@media(min-width:720px){.sheet-wrap{align-items:center}.sheet{border-radius:22px}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.sheet{animation:none}.spinner{animation-duration:3s}}
+
+.toast{position:fixed;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--black);color:var(--gold-2);border:1px solid var(--gold);padding:10px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+@media(max-width:420px){
+  .view-head h1{font-size:27px}
+  .brand .app{font-size:21px}
+  .person{grid-template-columns:40px minmax(0,1fr) auto}
+  .avatar{width:40px;height:40px;font-size:14px}
+}
+
+/* ---------- Księga sprawności ---------- */
+/* gwiazdki w kolorach z księgi: żółta ★, pomarańczowa ★★, czerwona ★★★ */
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:8px;font-size:13px;font-weight:600;line-height:1.25;border:1.5px solid transparent;white-space:nowrap;font-family:inherit;cursor:default;text-align:left}
+button.bdg{cursor:pointer;min-height:32px}
+.bdg i{font-style:normal;letter-spacing:.5px}
+.bdg small{font-weight:700;opacity:.75}
+.bdg.lv1{background:#ffe066;color:#3b2f00}
+.bdg.lv2{background:#ff9a2e;color:#2b1600}
+.bdg.lv3{background:#d9342b;color:#fff}
+.bdg.lv0{background:var(--black);color:var(--gold-2);border-color:#3a3426}
+.bdg.pend{background:transparent;color:var(--ink);border:1.5px dashed var(--muted)}
+.bdg.todo{background:transparent;color:var(--muted);border:1.5px dashed var(--line);font-weight:500}
+button.bdg:hover{filter:brightness(1.07)}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 12px}
+.cards-box{margin-bottom:10px}
+.cards-box summary{list-style:none}
+.cards-box summary::-webkit-details-marker{display:none}
+.cards-box summary::before{content:"▸";margin-right:2px}
+.cards-box[open] summary::before{content:"▾"}
+.kat-sec{border-left:5px solid var(--c,#777);padding:2px 0 4px 12px;margin:14px 0}
+.kat-title{font:700 15px Cinzel,Georgia,serif;margin:0 0 6px;letter-spacing:.4px}
+.branch{padding:6px 0;border-bottom:1px solid var(--line)}
+.branch:last-child{border-bottom:0}
+.branch-name{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:4px}
+.branch .chips{margin-top:0}
+
+
+
+/* Lista harcerzy */
+.roster{padding:4px 16px}
+.roster-head,.roster-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+.roster-head{font-size:12px;font-weight:700;color:var(--muted);padding:0 17px;margin:6px 0 -4px}
+.roster-row{padding:12px 0;border-bottom:1px solid var(--line);min-height:52px}
+.roster-row:last-child{border-bottom:0}
+.roster-row.tap:hover{background:var(--soft)}
+.r-name{font-weight:700}
+.r-rank{color:var(--gold-ink);font-weight:600}
+.r-fun{text-align:right}
+.tabs a{font-size:11.5px;padding-inline:0}
+@media(max-width:420px){.roster{padding:2px 12px}.roster-head{padding:0 13px}.roster-head,.roster-row{grid-template-columns:minmax(0,1.5fr) minmax(0,.9fr) minmax(0,1fr);gap:6px;font-size:15px}}
+.r-fun .pill{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+@media(max-width:420px){.r-fun .pill{font-size:12px;padding:2px 8px}}
+.change.danger{border-left:3px solid var(--red);padding-left:10px;margin-left:-13px}
+.change select+select{margin-top:6px}
+
+/* ---------- Panel logowania: naszywka drużyny ---------- */
+body.auth-mode{padding-bottom:0;background:#070707}
+body.auth-mode .top,body.auth-mode .tabs{display:none}
+body.auth-mode main{max-width:none;padding:0}
+.login{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(28px + env(safe-area-inset-top,0px)) 18px calc(28px + env(safe-area-inset-bottom,0px));
+  background:radial-gradient(120% 70% at 50% 0%,#2a2110 0%,#0d0c09 46%,#050505 100%);color:#ede4cc;position:relative;overflow:hidden}
+.login::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(201,162,58,.035) 0 2px,transparent 2px 14px);pointer-events:none}
+.login-card{position:relative;width:100%;max-width:400px;text-align:center}
+.login-crest{position:relative;width:200px;height:200px;margin:0 auto 6px;display:grid;place-items:center}
+.login-crest img{position:relative;width:156px;height:156px;object-fit:contain;filter:drop-shadow(0 10px 24px rgba(0,0,0,.7));animation:crest .9s cubic-bezier(.2,.8,.2,1) both}
+.login-crest .ring{position:absolute;inset:0;border-radius:50%;border:2px solid #c9a23a;opacity:.55}
+.login-crest .r2{inset:9px;border-color:#a3271d;border-width:3px;opacity:.7}
+.login-crest .r3{inset:-12px;border-color:rgba(201,162,58,.25);border-width:1px}
+.login-kicker{margin:0;font:600 13px "Source Sans 3",sans-serif;letter-spacing:2.5px;text-transform:uppercase;color:#bfae7c}
+.login-title{font:700 clamp(46px,13vw,64px)/1 Cinzel,Georgia,serif;letter-spacing:10px;margin:6px 0 26px;padding-left:10px;color:#e3c467;
+  background:linear-gradient(180deg,#f3dc8a 0%,#c9a23a 55%,#9b7a22 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#authForm{background:rgba(20,19,16,.92);border:1px solid #3d3522;border-radius:20px;padding:22px 20px 20px;text-align:left;box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);border-top:3px solid #c9a23a}
+.lf{display:block;margin-bottom:14px}
+.lf>span:first-child{display:block;font-size:13px;font-weight:700;color:#cbbd94;margin-bottom:6px;letter-spacing:.3px}
+.lf-in{position:relative;display:flex;align-items:center}
+.lf-in svg{position:absolute;left:14px;width:20px;height:20px;fill:none;stroke:#8f8366;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.lf-in input{background:#0c0b09;border:1px solid #3a3325;color:#f3ecd8;padding-left:44px;min-height:52px;border-radius:14px;font-size:17px}
+.lf-in input::placeholder{color:#6f6650}
+.lf-in input:focus{border-color:#c9a23a;outline:2px solid rgba(201,162,58,.3)}
+.lf-eye{position:absolute;right:6px;min-height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#c9a23a;font-weight:700;font-size:14px;cursor:pointer}
+#authForm .err{color:#ff8b7d}
+.login-btn{min-height:52px;font-size:17px;letter-spacing:.5px;border-radius:14px;background:linear-gradient(180deg,#b8302a,#8f1f18);box-shadow:0 6px 18px rgba(163,39,29,.35)}
+.login-foot{color:#8f8366;font-size:14px;margin:16px 0 0}
+.login-demo{margin-top:16px;font-size:14px;color:#bfae7c;text-align:left;background:rgba(201,162,58,.07);border:1px dashed #4a4029;border-radius:14px;padding:12px 14px}
+.login-demo .chips{margin-top:8px}
+.login-demo .bdg{cursor:pointer;min-height:34px}
+.login-motto{position:relative;margin:26px 0 0;font:700 15px Cinzel,Georgia,serif;letter-spacing:4px;color:#7d6b3a}
+@keyframes crest{from{opacity:0;transform:scale(.86) translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.login-crest img{animation:none}}
+@media(max-height:700px){.login-crest{width:150px;height:150px}.login-crest img{width:116px;height:116px}.login-title{margin-bottom:16px}}
+
+/* ---------- Składki ---------- */
+.sk-top{align-items:flex-start}
+.sk-year{display:flex;align-items:center;gap:2px;margin-top:6px}
+.sk-year b{font:700 20px Cinzel,Georgia,serif;min-width:64px;text-align:center}
+.sk-year .icon-btn{font-size:26px;line-height:1;color:var(--gold-ink)}
+.sk-fee{display:flex;flex-direction:column;align-items:flex-end;gap:4px;background:var(--black);color:var(--gold-2);border:1px solid #3a3426;border-radius:14px;padding:10px 14px}
+.sk-fee>span:first-child{font-size:12px;font-weight:700;letter-spacing:.3px;color:#cbbd94}
+.sk-fee-in{display:flex;align-items:center;gap:6px;font:700 20px Cinzel,Georgia,serif}
+.sk-fee input{width:92px;min-height:42px;text-align:right;font:700 22px "Source Sans 3",sans-serif;background:#0c0b09;color:#f3dc8a;border:1px solid #4a4029;border-radius:10px;padding:4px 10px}
+.sk-sum{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+.sk-sum>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.sk-sum span{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.sk-sum b{font:700 24px Cinzel,Georgia,serif}
+.sk-sum .due b{color:var(--red-ink)}
+.sk-card{padding:6px 14px}
+.sk-row{display:grid;grid-template-columns:minmax(0,1.7fr) repeat(4,minmax(46px,.62fr)) minmax(70px,.8fr);gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.sk-head{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
+.sk-head span:first-child{text-align:left}
+.sk-head span:last-child{text-align:right}
+.sk-name{font-weight:700}
+.sk-in{min-height:40px;padding:6px 4px;text-align:center;font-size:16px;font-weight:700;border-radius:9px;border:1.5px solid var(--line)}
+.sk-in.pusta{background:light-dark(#fde2df,#4a1612);border-color:light-dark(#f1a59d,#8a2a21)}
+.sk-in.czesc{background:light-dark(#fff0cc,#3d3010);border-color:light-dark(#efcf7c,#6d5520)}
+.sk-in.ok{background:light-dark(#e3f2e6,#14301c);border-color:light-dark(#b4d9bd,#2a5a37)}
+.sk-in.zw{background:var(--soft);color:var(--muted);border-style:dashed}
+.sk-rest{text-align:right;font-weight:700;white-space:nowrap}
+.sk-rest.due{color:var(--red-ink)}
+.sk-rest.paid{color:light-dark(#2b7a46,#8fd7a4)}
+.sk-foot{display:flex;justify-content:space-between;padding:10px 0 6px;font-size:14px;color:var(--muted)}
+.sk-foot b{color:var(--ink)}
+@media(max-width:560px){
+  .sk-row{grid-template-columns:repeat(4,minmax(0,1fr)) minmax(64px,1fr);row-gap:4px}
+  .sk-row .sk-name{grid-column:1/-1}
+  .sk-head span:first-child{display:none}
+  .sk-in{font-size:15px}
+}
