@@ -119,7 +119,7 @@ function demoBackend(){
     async insert(t, row){
       const r = { id: nextId++, created_at: new Date().toISOString(), ...row };
       if (['rozkazy','konspekty'].includes(t)) r.autor_id = db.me;
-      if (t === 'konspekty') { const me = db.profiles.find(p => p.id === db.me); r.zastep = me.zastep; r.status = 'oczekuje'; }
+      if (t === 'konspekty') { const me = db.profiles.find(p => p.id === db.me), k = ['druzynowy','przyboczny'].includes(me.rola); r.zastep = k ? 'Kadra' : me.zastep; r.status = k ? 'zatwierdzony' : 'oczekuje'; if (k) { r.zatwierdzil = me.id; r.zatwierdzono_at = r.created_at; } }
       db[t].push(r); save(); return r;
     },
     async insertMany(t, rows){ const out = []; for (const r of rows) out.push(await this.insert(t, r)); return out; },
@@ -571,33 +571,33 @@ function vKonspekty(){
   const pend = all.filter(k => k.status === 'oczekuje').sort((a,b) => String(a.data).localeCompare(String(b.data)));
   const ok = all.filter(k => k.status === 'zatwierdzony').sort((a,b) => String(b.data).localeCompare(String(a.data)));
   const list = S.planTab === 'oczekuje' ? pend : ok;
-  const canAdd = S.me.rola === 'zastepowy';
+  const canAdd = true;
   return `<div class="view-head"><div><h1>Konspekty</h1><p>${isKadra() ? 'Plany zbiórek zastępów do zatwierdzenia' : 'Plany zbiórek zastępów'}</p></div>
     ${canAdd ? `<button class="btn" data-act="plan-new">${ICON.plus}Nowy konspekt</button>` : ''}</div>
     <div class="seg" role="group" aria-label="Status">
       <button data-act="plan-tab" data-v="oczekuje" aria-pressed="${S.planTab === 'oczekuje'}">Do zatwierdzenia (${pend.length})</button>
       <button data-act="plan-tab" data-v="zatwierdzony" aria-pressed="${S.planTab !== 'oczekuje'}">Zatwierdzone (${ok.length})</button></div>
-    <div class="filters"><select id="planZastep" aria-label="Zastęp"><option value="">Wszystkie zastępy</option>${ZASTEPY.map(z => `<option ${z === S.planZastep ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select></div>
+    <div class="filters"><select id="planZastep" aria-label="Zastęp"><option value="">Wszystkie zastępy</option>${['Kadra', ...ZASTEPY].map(z => `<option ${z === S.planZastep ? 'selected' : ''}>${esc(z)}</option>`).join('')}</select></div>
     ${list.length ? list.map(k => `<article class="card tap plan" data-act="plan-open" data-id="${k.id}" tabindex="0" role="button">
       <div class="when">${fmtShort(k.data)} · <span class="nowrap">${hm(k.godz_od)}–${hm(k.godz_do)}</span></div>
       <h3>${esc(k.temat)}</h3>
-      <div class="meta">${esc(k.miejsce)}${k.miejsce ? ' · ' : ''}Zastęp ${esc(k.zastep || '—')} · ${esc(nameOf(k.autor_id))}</div>
+      <div class="meta">${esc(k.miejsce)}${k.miejsce ? ' · ' : ''}${esc(zastepLabel(k.zastep))} · ${esc(nameOf(k.autor_id))}</div>
       <div style="margin-top:8px">${k.status === 'zatwierdzony' ? `<span class="pill ok">Zatwierdzony</span>` : `<span class="pill wait">Czeka na zatwierdzenie</span>`}
       ${k.autor_id === S.me.id ? ' <span class="pill">Twój</span>' : ''}</div></article>`).join('')
     : `<div class="empty"><strong>${S.planTab === 'oczekuje' ? 'Nic nie czeka na zatwierdzenie' : 'Brak zatwierdzonych konspektów'}</strong>${canAdd && S.planTab === 'oczekuje' ? 'Dodaj konspekt najbliższej zbiórki zastępu.' : ''}</div>`}`;
 }
-function planText(k){ return `${k.temat}\nZastęp ${k.zastep} – ${nameOf(k.autor_id)}\n${fmtDate(k.data)}, ${hm(k.godz_od)}–${hm(k.godz_do)}\nMiejsce: ${k.miejsce}\n\nPRZEBIEG:\n${k.przebieg}`; }
+function planText(k){ return `${k.temat}\n${zastepLabel(k.zastep)} – ${nameOf(k.autor_id)}\n${fmtDate(k.data)}, ${hm(k.godz_od)}–${hm(k.godz_do)}\nMiejsce: ${k.miejsce}\n\nPRZEBIEG:\n${k.przebieg}`; }
 function planOpen(k){
   const mine = k.autor_id === S.me.id, pending = k.status === 'oczekuje';
   openSheet(k.temat, `
     <div style="margin-bottom:10px">${pending ? '<span class="pill wait">Czeka na zatwierdzenie</span>' : `<span class="pill ok">Zatwierdzony</span> <span class="meta">przez ${esc(nameOf(k.zatwierdzil))}</span>`}</div>
     <div class="detail-grid">
       <div><b>Data</b>${fmtDate(k.data)}</div><div><b>Godziny</b>${hm(k.godz_od)}–${hm(k.godz_do)}</div>
-      <div><b>Miejsce</b>${esc(k.miejsce || '—')}</div><div><b>Zastęp</b>${esc(k.zastep || '—')} · ${esc(nameOf(k.autor_id))}</div></div>
+      <div><b>Miejsce</b>${esc(k.miejsce || '—')}</div><div><b>Autor</b>${esc(nameOf(k.autor_id))} · ${esc(zastepLabel(k.zastep))}</div></div>
     <div class="field"><span>Przebieg zbiórki</span><div class="prose card" style="margin:0">${esc(k.przebieg || '—')}</div></div>
     <div class="form-actions">
       <button class="btn ghost" id="copyPlan">Kopiuj tekst</button>
-      ${mine && pending ? `<button class="btn black" id="editPlan">Edytuj</button>` : ''}
+      ${mine && (pending || isKadra()) ? `<button class="btn black" id="editPlan">Edytuj</button>` : ''}
       ${isKadra() ? (pending ? `<button class="btn" id="approvePlan">Zatwierdź</button>` : `<button class="btn black" id="unapprovePlan">Cofnij zatwierdzenie</button>`) : ''}
     </div>
     ${(mine && pending) || isKadra() ? `<button class="btn danger wide" style="margin-top:10px" id="delPlan">Usuń konspekt</button>` : ''}
@@ -625,8 +625,8 @@ function planForm(k){
     submitLabel: k ? 'Zapisz zmiany' : 'Opublikuj konspekt',
     onSubmit: async (v, form) => {
       if (v.godz_do <= v.godz_od) { form.querySelector('.err').textContent = 'Godzina zakończenia musi być późniejsza niż rozpoczęcia.'; return; }
-      S.planTab = 'oczekuje';
-      await mutate(() => k ? backend.update('konspekty', k.id, v) : backend.insert('konspekty', v), k ? 'Zapisano konspekt' : 'Opublikowano – czeka na zatwierdzenie');
+      if (!k) S.planTab = isKadra() ? 'zatwierdzony' : 'oczekuje';
+      await mutate(() => k ? backend.update('konspekty', k.id, v) : backend.insert('konspekty', v), k ? 'Zapisano konspekt' : (isKadra() ? 'Opublikowano konspekt' : 'Opublikowano – czeka na zatwierdzenie'));
     }
   });
 }
@@ -689,8 +689,8 @@ function vSprawnosci(){
 /* Katalog wszystkich sprawności */
 function ksKatalog(){
   const q = norm(S.kq || '');
-  const holders = nazwa => S.data.sprawnosci.filter(s => norm(s.nazwa) === norm(nazwa) && s.status !== 'do_zamkniecia').length;
-  let html = `<div class="filters"><input type="search" id="kqSearch" placeholder="Szukaj sprawności…" value="${esc(S.kq || '')}" aria-label="Szukaj sprawności"></div>`;
+  let html = `<div class="filters"><input type="search" id="kqSearch" placeholder="Szukaj sprawności…" value="${esc(S.kq || '')}" aria-label="Szukaj sprawności"></div>
+    <p class="meta">Stuknij sprawność, żeby zobaczyć jej wymagania.</p>`;
   let any = false;
   for (const [kat, gal] of katalogTree()) {
     let inner = '';
@@ -698,37 +698,42 @@ function ksKatalog(){
       const its = items.filter(k => !q || norm(k.nazwa).includes(q) || norm(g).includes(q));
       if (!its.length) continue;
       inner += `<div class="branch"><div class="branch-name">${esc(g)}</div><div class="chips">${its.map(k =>
-        `<button class="bdg lv${k.poziom || 0}" data-act="kat-open" data-id="${k.id}">${esc(k.nazwa)}${k.poziom ? ' <i>' + stars(k.poziom) + '</i>' : ''} <small>${holders(k.nazwa) || ''}</small></button>`).join('')}</div></div>`;
+        `<button class="bdg lv${k.poziom || 0}" data-act="kat-open" data-id="${k.id}">${esc(k.nazwa)}${k.poziom ? ' <i>' + stars(k.poziom) + '</i>' : ''}</button>`).join('')}</div></div>`;
     }
     if (!inner) continue; any = true;
     html += `<section class="kat-sec" style="--c:${KATEGORIE[kat] || '#777'}"><h3 class="kat-title">${esc(kat)}</h3>${inner}</section>`;
   }
   return html + (any ? '' : `<div class="empty"><strong>Brak wyników</strong>${S.data.katalog.length ? '' : 'Katalog jest pusty – uruchom plik ksiega_sprawnosci.sql.'}</div>`);
 }
+const ZHR_SPRAWNOSCI = 'https://stamps.zhr.pl/#/';
 function katOpen(id){
   const k = byId('katalog', id); if (!k) return;
-  const who = S.data.sprawnosci.filter(s => norm(s.nazwa) === norm(k.nazwa)).map(s => ({ s, h: byId('harcerze', s.harcerz_id) })).filter(x => x.h)
-    .sort((a,b) => cmpHarcerz(a.h, b.h));
-  openSheet(k.nazwa, `<div class="meta">${esc(k.kategoria)} · ${esc(k.galaz)}${k.poziom ? ` · <span class="stars">${stars(k.poziom)}</span>` : ''}</div>
-    <div class="section-title">Zdobyli (${who.filter(x => x.s.status !== 'do_zamkniecia').length})</div>
-    ${who.length ? who.map(({s,h}) => `<div class="row"><div><b>${esc(fullName(h))}</b><div class="meta">${esc(zastepLabel(h.zastep))}${s.data ? ' · ' + fmtDate(s.data) : ''}</div></div>
-      ${s.status === 'do_zamkniecia' ? '<span class="bdg lv1 pend">do zamknięcia</span>' : ''}</div>`).join('') : '<p class="meta">Nikt jeszcze nie zdobył tej sprawności.</p>'}
-    ${isKadra() ? `<button class="btn ghost wide" style="margin-top:14px" data-act="kat-edit" data-id="${k.id}">Edytuj pozycję katalogu</button>` : ''}`);
+  const w = (k.wymagania || '').trim();
+  openSheet(k.nazwa, `<div class="meta">${esc(k.kategoria)}${k.galaz && k.galaz !== k.kategoria ? ' · ścieżka ' + esc(k.galaz) : ''}${k.poziom ? ` · <span class="stars">${stars(k.poziom)}</span>` : ''}</div>
+    <div class="section-title">Wymagania</div>
+    ${w ? `<div class="card prose req" style="margin:0">${esc(w)}</div>`
+        : `<div class="empty" style="padding:22px 14px"><strong>Wymagania nie zostały jeszcze dodane</strong>${isKadra() ? 'Wklej je przyciskiem „Edytuj” poniżej – znajdziesz je na stronie sprawności ZHR.' : 'Sprawdź je na stronie sprawności ZHR.'}</div>`}
+    <div class="form-actions" style="margin-top:14px">
+      <a class="btn black" href="${ZHR_SPRAWNOSCI}" target="_blank" rel="noopener">Strona ZHR ↗</a>
+      ${isKadra() ? `<button class="btn ghost" data-act="kat-edit" data-id="${k.id}">${w ? 'Edytuj' : 'Dodaj wymagania'}</button>` : ''}
+    </div>`);
 }
 function katForm(k){
   const kats = [...new Set([...Object.keys(KATEGORIE), ...S.data.katalog.map(x => x.kategoria)])];
   const gal = [...new Set(S.data.katalog.map(x => x.galaz))].sort((a,b) => a.localeCompare(b,'pl'));
   openForm({
-    title: k ? 'Edytuj pozycję katalogu' : 'Nowa sprawność w katalogu',
+    title: k ? `Edytuj: ${k.nazwa}` : 'Nowa sprawność w katalogu',
     fields: [
       { name:'nazwa', label:'Nazwa sprawności', value:k?.nazwa, required:true },
       { name:'kategoria', label:'Kategoria', type:'select', value:k?.kategoria ?? kats[0], options: kats.map(x => ({ value:x, label:x })) },
       { name:'galaz', label:'Ścieżka (np. Rozpalanie Ognia)', value:k?.galaz, list:'galezie', required:true },
-      { name:'poziom', label:'Gwiazdki', type:'select', value:k?.poziom ?? 1, options:[{value:1,label:'★'},{value:2,label:'★★'},{value:3,label:'★★★'},{value:'',label:'bez gwiazdek (wyczyn, pagon, okazjonalna)'}] }
+      { name:'poziom', label:'Gwiazdki', type:'select', value:k?.poziom ?? 1, options:[{value:1,label:'★'},{value:2,label:'★★'},{value:3,label:'★★★'},{value:'',label:'bez gwiazdek (wyczyn, pagon, okazjonalna)'}] },
+      { name:'wymagania', label:'Wymagania (każde w nowej linii)', type:'textarea', cls:'tall', value:k?.wymagania ?? '', placeholder:'1. …\n2. …\n3. …' }
     ],
-    extra: `<datalist id="galezie">${gal.map(g => `<option value="${esc(g)}">`).join('')}</datalist>`,
+    extra: `<datalist id="galezie">${gal.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+      <p class="meta">Wymagania skopiujesz ze strony <a href="${ZHR_SPRAWNOSCI}" target="_blank" rel="noopener">sprawności ZHR</a> i wkleisz powyżej.</p>`,
     onSubmit: v => { v.poziom = v.poziom ? Number(v.poziom) : null; if (!k) v.kolejnosc = Math.max(0, ...S.data.katalog.filter(x => x.galaz === v.galaz).map(x => x.kolejnosc)) + 1;
-      return mutate(() => k ? backend.update('katalog', k.id, v) : backend.insert('katalog', v), 'Zapisano w katalogu'); },
+      return mutate(() => k ? backend.update('katalog', k.id, v) : backend.insert('katalog', v), 'Zapisano', k ? () => katOpen(k.id) : null); },
     onDelete: k && (() => mutate(() => backend.remove('katalog', k.id), 'Usunięto z katalogu'))
   });
 }
